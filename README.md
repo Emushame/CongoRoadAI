@@ -3,7 +3,7 @@
 **Application publique : https://congoroad-ai.streamlit.app/**  
 **Code source : https://github.com/Emushame/CongoRoadAI**
 
-Déploiement vérifié le 8 novembre 2026 sur Streamlit Community Cloud, Python 3.11 : une vidéo synthétique de 20 images a été analysée avec YOLO et FastALPR en 6,1 secondes, avec les exports MP4 et ZIP disponibles. Ce test valide le fonctionnement du pipeline hébergé, pas la précision sur route. Le test caméra distant est resté en attente de connexion avec le STUN seul, puis a été arrêté : un service TURN reste à configurer pour ce réseau. La caméra a été validée en exécution locale.
+Déploiement vérifié le 8 novembre 2026 sur Streamlit Community Cloud, Python 3.11 : une vidéo synthétique de 20 images a été analysée avec YOLO et FastALPR en 6,1 secondes, avec les exports MP4 et ZIP disponibles. Ce test valide le fonctionnement du pipeline hébergé, pas la précision sur route. Le direct distant a ensuite été validé avec Cloudflare TURN en mode relais : 163 images traitées et 35 à 38 ms de calcul par image observés, puis caméra arrêtée. Ces mesures ponctuelles ne garantissent ni la cadence ni la latence réseau pour les autres utilisateurs.
 
 Application en français pour analyser une vidéo ou une **caméra en direct**, avec Python, OpenCV, YOLO et FastALPR. Deux interfaces : bureau Tkinter et web Streamlit. Traitement sur CPU. Avec la version web publiée, les images sont envoyées au serveur Streamlit pour analyse ; la version exécutée localement reste sur votre ordinateur.
 
@@ -32,7 +32,7 @@ cloudflare_turn_api_token = "jeton-de-la-cle-TURN"
 relay_only = true
 ```
 
-Le serveur échange ces secrets contre des identifiants temporaires valables une heure, propres à chaque préparation de caméra. Seuls ces identifiants temporaires sont transmis au navigateur. Cliquer sur « Préparer la caméra » après configuration ou expiration. Aucun compte ni secret réel Cloudflare n’est fourni dans le dépôt. Une nouvelle validation du direct distant reste nécessaire après ajout des secrets. [Procédure officielle Cloudflare](https://developers.cloudflare.com/realtime/turn/generate-credentials/).
+Le serveur échange ces secrets contre des identifiants temporaires valables une heure, propres à chaque préparation de caméra. Seuls ces identifiants temporaires sont transmis au navigateur. Cliquer sur « Préparer la caméra » après configuration ou expiration. Aucun compte ni secret réel Cloudflare n’est fourni dans le dépôt. Le direct distant de l’application publiée a été validé après ajout des secrets Cloudflare le 8 novembre 2026. [Procédure officielle Cloudflare](https://developers.cloudflare.com/realtime/turn/generate-credentials/).
 
 ### Déploiement
 
@@ -123,3 +123,5 @@ Il consigne son résultat dans `outputs/validation/model-smoke.json`. Le 8 novem
 **Projet expérimental, pas un dispositif de sécurité ni un substitut à l'attention du conducteur.** Le nombre d'objets dans une zone est un indicateur simple, pas une mesure de distance, de risque de collision ou de densité physique. Les plaques petites, floues, masquées ou de formats locaux peuvent être mal lues. Les modèles ne sont pas spécialement entraînés sur les routes ou les plaques congolaises. Aucune validation de précision sur une vidéo de trajet n'est incluse dans ce dépôt.
 
 Références des intégrations : [Ultralytics](https://docs.ultralytics.com/modes/predict/) et [FastALPR](https://ankandrew.github.io/fast-alpr/latest/reference/). Vérifier les licences des bibliothèques et des modèles avant une redistribution commerciale.
+
+Le téléchargement de YOLO11n utilise aussi le miroir officiel Ultralytics sur Hugging Face si GitHub Releases échoue. Les poids restent hors du dépôt.
