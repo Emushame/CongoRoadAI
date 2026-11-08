@@ -17,7 +17,13 @@ LABELS = {2: ("Voiture", (90, 210, 90)), 3: ("Moto", (230, 180, 50)),
 class YoloDetector:
     def __init__(self, settings):
         from ultralytics import YOLO
-        self.model = YOLO(settings.model)
+        try:
+            self.model = YOLO(settings.model)
+        except ConnectionError:
+            if settings.model != "yolo11n.pt":
+                raise
+            # Official publisher mirror when GitHub Releases is unavailable.
+            self.model = YOLO("https://huggingface.co/Ultralytics/YOLO11/resolve/main/yolo11n.pt")
         self.settings = settings
 
     def predict(self, frame, confidence=None):
