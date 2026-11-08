@@ -62,7 +62,19 @@ Les modèles sont téléchargés au premier usage : une connexion Internet est n
 
 ## Fonctionnement
 
-- YOLO11n préentraîné sur COCO détecte les voitures, motos, bus et camions ; chaque catégorie a sa couleur. Pas de suivi d'identités entre les images.
+### Évolution du trafic (expérimental)
+
+La vidéo et le direct affichent maintenant une observation temporelle du trafic, avec un graphique sur 30 secondes et les indices expliquant chaque alerte. Les 10 premières secondes servent à accumuler des observations. Le signal « Accumulation en hausse » nécessite une hausse simultanée du nombre de véhicules et de la surface occupée sur les 10 dernières secondes. « Risque de congestion visuelle » nécessite au moins 8 secondes de zone chargée (seuil de véhicules réglable et au moins 12 % d’occupation visuelle), dont au moins deux véhicules suivis pendant 2 secondes. Les seuils sont heuristiques, non calibrés sur des trajets réels.
+
+Un suivi par recouvrement des boîtes et catégorie associe les détections d’une image à la suivante, propre à chaque analyse. Il peut perdre ou confondre des véhicules en cas d’occlusion, croisement ou déplacement important. L’occupation est l’union des boîtes découpée par la zone, pas une densité routière physique. Les interruptions de plus de 2 secondes ou les retours temporels effacent les observations. Les graphiques sont bornés à 30 secondes.
+
+L’option « Caméra fixe » ajoute un indice de faible mouvement apparent (moins de 1 % de dimension d’image par seconde, lissé). Elle doit rester désactivée en trajet : aucun calcul de vitesse réelle ni compensation du mouvement de la caméra n’est effectué. Aucun signal ne garantit une route libre ; feux rouges, stationnements, zooms et changements de cadrage peuvent déclencher les mêmes indices. Ce module n’est pas un modèle entraîné de prédiction des bouchons : il ne donne ni probabilité calibrée, ni horizon de prévision, ni détour. Une collecte de vidéos annotées et une évaluation des fausses alertes restent nécessaires.
+
+Les exports CSV ajoutent l’état du trafic, l’occupation, les véhicules suivis, la durée de densité et les raisons ; le JSON résume les images de chaque état. La vidéo annotée contient aussi l’état du trafic. Les tests couvrent accumulation, densité transitoire/persistante, interruptions, cadence, occupation, isolation des sessions et affichage web.
+
+### Détection et alertes de densité
+
+- YOLO11n préentraîné sur COCO détecte les voitures, motos, bus et camions ; chaque catégorie a sa couleur. Le suivi temporel est une association locale de boîtes, sans identification des personnes ni identité permanente des véhicules.
 - Une zone trapézoïdale représente la chaussée devant la caméra. Un véhicule est compté lorsque le milieu du bas de sa boîte se trouve dans cette zone.
 - Par défaut, au moins **3 véhicules pendant 0,5 seconde de vidéo** déclenchent l'alerte. La flèche rouge pointe vers les véhicules du tiers horizontal le plus peuplé. Elle ne recommande aucune manœuvre.
 - FastALPR travaille toutes les 5 images ; une lecture sous 70 % de confiance est marquée « Illisible ». Les résultats sont affichés uniquement sur l'image analysée pour éviter de déplacer une ancienne plaque sur un autre véhicule.

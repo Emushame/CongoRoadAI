@@ -78,6 +78,7 @@ class VideoJob:
             h, w = image.shape[:2]
             preview = cv2.resize(image, (min(w, 640), max(2, int(h * min(w, 640) / w))))
             self.update(current=data["current"], total=data["total"], image=preview,
+                        traffic=data.get("traffic"),
                         vehicles=data["vehicles"], alert=data["alert"], status="Analyse en cours…")
         elif kind == "status":
             self.update(status=data)

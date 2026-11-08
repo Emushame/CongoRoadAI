@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 
 from .core import Detection, DensityAlert, Settings, in_zone, polygon
+from .traffic import TrafficMonitor, draw_traffic
 
 LABELS = {2: ("Voiture", (90, 210, 90)), 3: ("Moto", (230, 180, 50)),
           5: ("Bus", (60, 180, 250)), 7: ("Camion", (210, 110, 220))}
@@ -124,9 +125,11 @@ def process_video(source, destination, settings=None, stop=None, progress=None,
             notify("status", "Chargement de FastALPR…")
             alpr = alpr_factory()
         alert = DensityAlert(settings)
+        traffic_monitor = TrafficMonitor(settings)
+        traffic_counts = {key: 0 for key in ('observing', 'none', 'watch', 'risk')}
         with (destination / "analyse.csv").open("w", newline="", encoding="utf-8-sig") as report:
             csv_writer = csv.writer(report)
-            csv_writer.writerow(["image", "temps_s", "vehicules", "dans_zone", "alerte", "ocr_execute", "plaques_json"])
+            csv_writer.writerow(["image", "temps_s", "vehicules", "dans_zone", "alerte", "ocr_execute", "plaques_json", "trafic_etat", "occupation_zone", "vehicules_suivis", "densite_duree_s", "trafic_raisons"])
             while ok and not stop.is_set():
                 h, w = frame.shape[:2]
                 ratio = min(1, settings.max_width / w)
@@ -141,24 +144,29 @@ def process_video(source, destination, settings=None, stop=None, progress=None,
                 selected = [d for d in detections if in_zone(d.anchor, *size, settings)]
                 timestamp = count / fps
                 active = alert.update(len(selected), timestamp)
+                traffic = traffic_monitor.update(selected, *size, timestamp)
+                traffic_counts[traffic['level']] += 1
                 ocr_run = alpr is not None and count % settings.alpr_every == 0
                 # Never reuse plate coordinates/text on a different frame.
                 plates = plate_predictions(alpr, frame, settings.ocr_confidence) if ocr_run else []
                 annotated = annotate(frame, detections, selected, plates, active, settings, timestamp)
+                draw_traffic(annotated, traffic)
                 writer.write(annotated)
                 csv_writer.writerow([count, round(timestamp, 4), len(detections), len(selected),
-                                     int(active), int(ocr_run), json.dumps(plates, ensure_ascii=False)])
+                                     int(active), int(ocr_run), json.dumps(plates, ensure_ascii=False), traffic['level'],
+                                     traffic['occupancy'], traffic['tracked'], traffic['dense_seconds'], json.dumps(traffic['reasons'], ensure_ascii=False)])
                 count += 1
                 alerts += int(active)
                 notify("frame", {"image": annotated, "current": count, "total": total,
-                                 "vehicles": len(selected), "alert": active})
+                                 "vehicles": len(selected), "alert": active, "traffic": traffic})
                 ok, frame = capture.read()
         if not stop.is_set() and total > 0 and count < total:
             raise RuntimeError(f"Décodage interrompu à {count}/{total} images. Les exports sont partiels.")
         summary = {"source": str(source), "frames": count, "fps": fps,
                    "alert_frames": alerts, "cancelled": stop.is_set(),
                    "processing_seconds": round(perf_counter() - started, 2),
-                   "settings": vars(settings), "audio_preserved": False}
+                   "settings": vars(settings), "audio_preserved": False,
+                   "traffic_frames": traffic_counts, "traffic_method": "visual_heuristic_v1_not_validated"}
         (destination / "resume.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
         return summary
     except Exception as exc:

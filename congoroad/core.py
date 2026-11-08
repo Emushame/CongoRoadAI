@@ -27,6 +27,7 @@ class Settings:
     alpr_every: int = 5
     ocr_confidence: float = 0.70
     max_width: int = 1280
+    camera_fixed: bool = False
 
     def validate(self):
         if not all(math.isfinite(value) for value in

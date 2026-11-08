@@ -56,6 +56,8 @@ with st.sidebar:
     threshold = st.slider("Seuil de prudence", 2, 10, 3, help="Nombre de véhicules simultanément dans la zone.")
     persistence = st.slider("Persistance (secondes)", 0.0, 3.0, .5, .1)
     alpr = st.toggle("Lire les plaques", value=False, help="FastALPR demande plus de calcul et peut réduire la fluidité.")
+    camera_fixed = st.toggle("Caméra fixe", value=False,
+                             help="Activez uniquement pour une caméra immobile. En trajet, laissez désactivé : le mouvement apparent ne mesure pas la vitesse réelle.")
     with st.expander("Zone de circulation"):
         horizon = st.slider("Horizon", .15, .80, .42, .01)
         top_width = st.slider("Largeur en haut", .10, .60, .30, .05)
@@ -67,9 +69,30 @@ with st.sidebar:
 
 settings = Settings(confidence=confidence, threshold=threshold, persistence=persistence,
                     horizon=horizon, top_width=top_width, bottom_width=bottom_width,
-                    alpr=alpr, alpr_every=alpr_every, max_width=width)
+                    alpr=alpr, alpr_every=alpr_every, max_width=width, camera_fixed=camera_fixed)
 signature = hashlib.sha256(json.dumps(asdict(settings), sort_keys=True).encode()).hexdigest()[:12]
 st.markdown('<div class="legend">🟢 Voiture &nbsp; · &nbsp; 🔵 Moto &nbsp; · &nbsp; 🟠 Bus &nbsp; · &nbsp; 🟣 Camion &nbsp; · &nbsp; 🔴 Zone dense</div>', unsafe_allow_html=True)
+
+
+def traffic_panel(traffic):
+    if not traffic:
+        return
+    st.subheader("Évolution du trafic")
+    if traffic['level'] in ('watch', 'risk'):
+        st.warning(traffic['label'])
+    else:
+        st.info(traffic['label'])
+    for reason in traffic['reasons']:
+        st.write(reason)
+    a, b, c = st.columns(3)
+    a.metric("Occupation visuelle", f"{traffic['occupancy']:.0%}")
+    b.metric("Véhicules suivis ≥ 2 s", traffic['tracked'])
+    c.metric("Zone chargée depuis", f"{traffic['dense_seconds']:.1f} s")
+    if traffic['low_motion'] is not None:
+        st.caption(f"Caméra fixe : {traffic['low_motion']} véhicule(s) à faible mouvement apparent.")
+    if len(traffic['history']) >= 2:
+        st.line_chart(traffic['history'], x='temps_s', y='véhicules', height=170)
+    st.caption("Indices visuels expérimentaux, sans probabilité ni délai de bouchon calibrés. Un feu rouge, un stationnement ou un changement de cadrage peuvent produire les mêmes signaux. Aucun itinéraire alternatif n’est calculé.")
 
 
 @st.fragment(run_every=1)
@@ -91,6 +114,8 @@ def job_panel():
         st.warning(state["warning"])
     if state.get("error"):
         st.error(state["error"])
+    if not state.get("error"):
+        traffic_panel(state.get("traffic"))
     if state["done"]:
         if state.get("summary"):
             summary = state["summary"]
@@ -98,6 +123,8 @@ def job_panel():
             cols[0].metric("Images analysées", summary["frames"])
             cols[1].metric("Images avec alerte", summary["alert_frames"])
             cols[2].metric("Temps de calcul", f"{summary['processing_seconds']:.1f} s")
+            counts = summary.get('traffic_frames', {})
+            st.caption(f"Trafic : {counts.get('watch', 0)} images d’accumulation en hausse ; {counts.get('risk', 0)} images de risque visuel. Détail temporel dans le CSV.")
         if state.get("video"):
             st.video(state["video"], format="video/mp4")
             st.download_button("Télécharger la vidéo", state["video"], "congoroad-video.mp4", "video/mp4")
@@ -189,6 +216,7 @@ else:
                 c.metric("Images traitées", snapshot.get("processed", 0))
                 if snapshot.get("alert"):
                     st.warning("Prudence indicative : plusieurs véhicules occupent la zone.")
+                traffic_panel(snapshot.get('traffic'))
         camera_metrics()
     elif st.session_state.get("camera_prepared") and not prepared:
         st.caption("Les réglages ont changé. Préparez à nouveau la caméra pour les appliquer.")

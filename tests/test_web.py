@@ -102,6 +102,8 @@ class WebUploadTests(unittest.TestCase):
         self.assertTrue(state["done"])
         self.assertIsNone(state["error"])
         self.assertEqual(state["summary"]["frames"], 10)
+        self.assertEqual(state["summary"]["traffic_frames"]["observing"], 10)
+        self.assertEqual(state['traffic']['level'], 'observing')
         self.assertTrue(state["video"])
         with av.open(io.BytesIO(state["video"])) as movie:
             self.assertEqual(movie.streams.video[0].codec_context.name, "h264")
@@ -139,3 +141,17 @@ class StreamlitTests(unittest.TestCase):
         self.assertTrue(next(b for b in app.button if b.label == "Préparer la caméra").disabled)
         app.checkbox(key="camera_consent").check().run()
         self.assertFalse(next(b for b in app.button if b.label == "Préparer la caméra").disabled)
+
+    def test_traffic_panel_renders_explanations_and_chart(self):
+        from types import SimpleNamespace
+        from streamlit.testing.v1 import AppTest
+        from congoroad.traffic import TrafficMonitor
+        monitor = TrafficMonitor(Settings())
+        for i in range(121):
+            traffic = monitor.update([Detection((180+j*80,240,250+j*80,450), 'Voiture', .9) for j in range(3)],640,480,i/10)
+        app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / 'streamlit_app.py')).run()
+        app.session_state['video_job'] = SimpleNamespace(snapshot=lambda: {
+            'status': 'Analyse terminée', 'done': True, 'traffic': traffic})
+        app.run()
+        self.assertFalse(app.exception)
+        self.assertTrue(any('Risque de congestion' in w.value for w in app.warning))

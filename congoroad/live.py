@@ -7,6 +7,7 @@ import cv2
 
 from .core import DensityAlert, Settings, in_zone
 from .engine import YoloDetector, annotate, create_alpr, plate_predictions
+from .traffic import TrafficMonitor, draw_traffic
 
 
 class SharedModels:
@@ -48,6 +49,7 @@ class FrameAnalyzer:
         self.last_timestamp = None
         self.origin = None
         self.processed = 0
+        self.traffic = TrafficMonitor(settings)
 
     def process(self, frame, timestamp):
         if not math.isfinite(timestamp):
@@ -68,9 +70,11 @@ class FrameAnalyzer:
         detections, plates = self.models.predict(resized, self.settings, read_plates)
         selected = [d for d in detections if in_zone(d.anchor, width, height, self.settings)]
         active = self.alert.update(len(selected), timestamp)
+        traffic = self.traffic.update(selected, width, height, timestamp)
         rendered = annotate(resized, detections, selected, plates, active, self.settings, timestamp - self.origin)
+        draw_traffic(rendered, traffic)
         self.processed += 1
         latency = time.monotonic() - started
         return rendered, {"processed": self.processed, "vehicles": len(selected), "alert": active,
                           "latency_ms": round(latency * 1000), "ocr_run": read_plates,
-                          "updated_at": time.monotonic(), "error": None}
+                          "updated_at": time.monotonic(), "error": None, "traffic": traffic}

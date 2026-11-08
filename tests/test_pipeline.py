@@ -64,6 +64,9 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(len(rows), 12)
             self.assertEqual(rows[4]["alerte"], "0")
             self.assertEqual(rows[5]["alerte"], "1")
+            self.assertEqual(rows[-1]['trafic_etat'], 'observing')
+            self.assertIn('occupation_zone', rows[-1])
+            self.assertEqual(sum(summary['traffic_frames'].values()), summary['frames'])
             with self.assertRaises(FileExistsError):
                 process_video(source, root / "out", detector_factory=FakeDetector)
 
