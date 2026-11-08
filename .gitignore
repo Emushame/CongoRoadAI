@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.pt
+outputs/
+.pytest_cache/
+*.mp4
+*.avi
+*.mov
+data/
+.streamlit/secrets.toml
+.env
+.env.*

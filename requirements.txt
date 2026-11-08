@@ -1,0 +1,16 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+# Streamlit Cloud uses Linux: avoid downloading CUDA packages on CPU hosts.
+torch==2.15.0+cpu; sys_platform == "linux"
+torchvision==0.29.2+cpu; sys_platform == "linux"
+ultralytics>=8.3,<9
+fast-alpr[onnx]>=0.3,<1
+Pillow>=10,<13
+opencv-python==4.11.0.86
+# FastALPR requires the headless distribution; align its shared cv2 version.
+opencv-python-headless==4.11.0.86
+numpy>=1.26,<3
+streamlit==1.67.0
+streamlit-webrtc==0.63.11
+# streamlit-webrtc imports Tornado, even with Streamlit's newer server.
+tornado>=6.4,<7
+imageio-ffmpeg==0.8.1
