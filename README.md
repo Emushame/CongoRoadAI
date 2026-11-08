@@ -1,5 +1,10 @@
 # CongoRoadAI
 
+**Application publique : https://congoroad-ai.streamlit.app/**  
+**Code source : https://github.com/Emushame/CongoRoadAI**
+
+Déploiement vérifié le 8 novembre 2026 sur Streamlit Community Cloud, Python 3.11 : une vidéo synthétique de 20 images a été analysée avec YOLO et FastALPR en 6,1 secondes, avec les exports MP4 et ZIP disponibles. Ce test valide le fonctionnement du pipeline hébergé, pas la précision sur route. Le test caméra distant est resté en attente de connexion avec le STUN seul, puis a été arrêté : un service TURN reste à configurer pour ce réseau. La caméra a été validée en exécution locale.
+
 Application en français pour analyser une vidéo ou une **caméra en direct**, avec Python, OpenCV, YOLO et FastALPR. Deux interfaces : bureau Tkinter et web Streamlit. Traitement sur CPU. Avec la version web publiée, les images sont envoyées au serveur Streamlit pour analyse ; la version exécutée localement reste sur votre ordinateur.
 
 ## Application web et caméra
