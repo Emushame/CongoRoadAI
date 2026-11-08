@@ -9,6 +9,7 @@ import streamlit as st
 from congoroad.core import Settings
 from congoroad.live import SharedModels
 from congoroad.web_jobs import VideoJob
+from congoroad.rtc import build_rtc_configuration, has_turn
 
 st.set_page_config(page_title="CongoRoadAI · Vision de la route", page_icon="🛣️", layout="wide")
 st.markdown("""<style>
@@ -35,10 +36,10 @@ def get_models(with_alpr):
 
 def rtc_configuration():
     try:
-        servers = st.secrets.get("webrtc", {}).get("ice_servers", [])
+        options = dict(st.secrets.get("webrtc", {}))
     except FileNotFoundError:
-        servers = []
-    return {"iceServers": list(servers) or [{"urls": ["stun:stun.l.google.com:19302"]}]}
+        options = {}
+    return build_rtc_configuration({"webrtc": options})
 
 
 st.markdown('<div class="brand">CONGO<span>ROAD</span>AI <span> / </span> LAB</div>', unsafe_allow_html=True)
@@ -143,18 +144,26 @@ else:
     if st.button("Préparer la caméra", type="primary", disabled=not consent):
         try:
             with st.spinner("Chargement des modèles pour le direct…"):
+                st.session_state["camera_rtc"] = rtc_configuration()
+                st.session_state["camera_rtc_created"] = time.monotonic()
                 st.session_state["camera_models"] = get_models(alpr)
                 st.session_state["camera_prepared"] = signature
             prepared = True
         except Exception as exc:
             st.error(f"La caméra ne peut pas être préparée : {exc}")
     if consent and prepared:
+        if time.monotonic() - st.session_state.get("camera_rtc_created", 0) > 3300:
+            st.info("La connexion a expiré. Cliquez sur « Préparer la caméra » pour la renouveler.")
+            st.stop()
+        configuration = st.session_state["camera_rtc"]
+        if not has_turn(configuration):
+            st.warning("Le relais vidéo n’est pas encore configuré. Sur ce réseau, le direct peut rester bloqué. L’analyse de vidéos importées reste disponible.")
         from streamlit_webrtc import WebRtcMode, webrtc_streamer
         from congoroad.webcam import CameraProcessor
         models = st.session_state["camera_models"]
         context = webrtc_streamer(
-            key=f"road-camera-{signature}-{facing}", mode=WebRtcMode.SENDRECV,
-            rtc_configuration=rtc_configuration(),
+            key=f"road-camera-{signature}-{facing}-{st.session_state['camera_rtc_created']}", mode=WebRtcMode.SENDRECV,
+            rtc_configuration=configuration,
             media_stream_constraints={"video": {"width": {"ideal": 640}, "height": {"ideal": 480},
                                                "frameRate": {"ideal": 10, "max": 15},
                                                "facingMode": {"ideal": "environment" if facing == "Arrière / route" else "user"}},

@@ -14,3 +14,4 @@ streamlit-webrtc==0.63.11
 # streamlit-webrtc imports Tornado, even with Streamlit's newer server.
 tornado>=6.4,<7
 imageio-ffmpeg==0.8.1
+requests>=2.28,<3

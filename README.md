@@ -21,6 +21,21 @@ Ouvrir l'adresse locale indiquée. **Vidéo importée** permet de lire l'origina
 
 ## Publication sur Streamlit Community Cloud
 
+### Relais Cloudflare pour la caméra distante
+
+Créer une clé TURN dans Cloudflare Realtime, puis saisir dans **Streamlit > App settings > Secrets** (jamais dans GitHub) :
+
+```toml
+[webrtc]
+cloudflare_turn_key_id = "identifiant-de-la-cle-TURN"
+cloudflare_turn_api_token = "jeton-de-la-cle-TURN"
+relay_only = true
+```
+
+Le serveur échange ces secrets contre des identifiants temporaires valables une heure, propres à chaque préparation de caméra. Seuls ces identifiants temporaires sont transmis au navigateur. Cliquer sur « Préparer la caméra » après configuration ou expiration. Aucun compte ni secret réel Cloudflare n’est fourni dans le dépôt. Une nouvelle validation du direct distant reste nécessaire après ajout des secrets. [Procédure officielle Cloudflare](https://developers.cloudflare.com/realtime/turn/generate-credentials/).
+
+### Déploiement
+
 Le point d'entrée est **`streamlit_app.py`**, pas `app.py` qui démarre Tkinter. Le dépôt contient `requirements.txt`, `packages.txt` pour les bibliothèques Linux et `.streamlit/config.toml`. Python **3.11** est la version testée. PyTorch CPU est sélectionné pour Linux ; le verrou `requirements-lock.txt` décrit l'environnement Windows et n'est pas le fichier à sélectionner pour déployer sur Linux.
 
 1. Publier le code dans un dépôt GitHub, en excluant `.venv`, `data`, `outputs`, les vidéos, les poids et les secrets (déjà ignorés par Git).
